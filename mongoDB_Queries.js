@@ -1,5 +1,8 @@
 /*Tenemos una colección de Objetos Restaurante en la ciudad de Nueva York, y necesitamos algunas consultas... ¿puedes ayudarnos?*/
 
+
+// MongoDB SHELL
+
 use("Restaurants");
 
 /* 1.Escribe una consulta para mostrar todos los documentos en la colección Restaurantes. */
