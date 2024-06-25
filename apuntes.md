@@ -556,135 +556,162 @@ db.estudiantes.aggregate([{$project: { _id:0, notas:1, notasInversas: {$reverseA
 ```
 Nos permite obtener la cantidad total de elementos de un arreglo.
 Ej: Para saber cuántas notas tiene un estudiante:
-
+```
 db.estudiantes.aggregate([{$project: { _id:0, notas:1, cantidadDeNotas: {$size: '$notas'} }}])
-
-$slice
+```
+# $slice
+```
 { $slice: [ ,,<número n> ] }
+```
 Con este operador retornamos un arreglo conformado por una cantidad “n” de elementos a la derecha de una “posición” de un arreglo específico.
 En este caso el parámetro posición es opcional, por lo que si solo pasamos dos parámetros al método, serán el arreglo y el número de elementos.
 Ej: Para obtener las primeras 2 notas del estudiante, hacemos lo siguiente.
-
+```
 db.estudiantes.aggregate([{$project: { _id:0, notas:1, primeras2Notas: {$slice: ['$notas',2]} }}])
-
+```
 De no pasar ninguna posición, se toma 0 como valor por defecto.
 
-$zip
+# $zip
+```
 {$zip: {inputs: [ ,  … ], useLongestLength: , defaults:   }}
+```
 Este operador recibe como input n cantidad de arreglos y retorna un arreglo en donde cada elemento de dicho resultado serán los elementos en la posición n de cada uno de los arreglos, es decir, el primer elemento del arreglo resultante será un arreglo con todos los primeros elementos de los arreglos que recibe como parámetro input, el segundo elemento será un arreglo con todos los segundo elementos y así sucesivamente.
 El segundo parametro es un valor booleano que con el que indicamos si la longitud del arreglo resultante estará condicionada por la longitud del arreglo más largo de los arreglos de entrada de ser true. De ser false, ignora la cantidad de elementos que excedan el valor del arreglo más corto.
 Ej: Usaremos este operador para mezclar los elementos de las notas de los estudiantes y otros 2 arreglos ([1,2,3] y [‘A’,’B’,’C’]).
-
+```
 db.estudiantes.aggregate([{$project: { _id:0, notas:1, zipNotas: {$zip:{inputs:['$notas',[1,2,3],['A','B','C']]}} }}])])
-
+```
 Como podemos ver, los elementos que exceden el tamaño del arreglo más pequeño no se muestran.
 
-Operadores de variable:
-$let
+# Operadores de variable:
+# $let
+```
 { $let: { vars: { : <expresión>, … }, in: <expresión> }}
+```
 Este operador nos permite definer n cantidad de variables obtenidas mediante expresiones para utilizarlas luego en una expresión y retorna el resultado de esta última expresión.
 Las variables que definimos en el parámetro “vars” no tienen uso alguno afuera de la expresión que pasamos como parámetro “in”. Dichas variables serán identificadas por el string que pasemos como nombre, y luego podremos hacer referencia a ellas en la expresión utilizando dicho string con $$.
 Ej: Vamos a definir una variable que almacenará la longitud del nombre completo del estudiante, y luego lo retornaremos de forma que diga “El nombre del estudiante x tiene n letras.”
-
+```
 db.estudiantes.aggregate([{$project : {_id:0, nombre:1, apellido:1, cantidadDeLetrasEnNombreCompleto: { $let : { vars : { nombreCompleto : {$concat: ['$nombre', '$apellido'] }}, in: { $concat : ["El nombre del estudiante ",'$$nombreCompleto'," tiene ", { $substr : [{$strLenCP:'$$nombreCompleto'},0,-1 ] }, " letras" ] } } } }}])
-
+```
 Aquí utilizamos un truquito para poder convertir un entero a un string fácilmente, que consiste un usar el método substring con parámetros 0 y -1.
 
-Operador literal:
-$literal
+# Operador literal:
+
+# $literal
+```
 { $literal: }
+
+```
 Este operador nos permite retornar el valor que pasamos como parámetro sin ser procesado por MongoDB. Bastante útil cuando tenemos que utilizar caracteres especiales como $, o cuando queremos pasar una operación sin que se resuelva.
 Ej: Para ver el funcionamiento de este operador utilizaremos el siguiente comando:
-
+```
 db.estudiantes.aggregate([{$project : {_id:0, nombre: 1, literalEdad: {$literal : '$edad'}, literalFuncion:{$literal: { $add : ['$edad',2]}}}}])
-
+```
 Como podemos observar, en el caso de la edad, en la que con el uso del símbolo $ mongo usualmente retornaría el valor de la edad del estudiante, se retorna el valor literal que pasamos, es decir “$edad”, y en el caso de la función, también podemos ver que la suma que normalmente se llevaría a cabo con el comando add no se ejecuta sino que retorna el valor literal que pasamos, en este caso, la función add con los parámetros que recibe, sin ser procesados.
 
-Operador de tipo de dato:
-$type
+# Operador de tipo de dato:
+# $type
+```
 { $type: <expresión> }
+```
 Este operador nos permite obtener el tipo de dato BSON en el que se resuelve la expresión que pasamos como parámetro. Los tipos de datos posibles los podemos consultar en esta tabla:  Tipos de datos BSON
 Ej: Con el siguiente comando observamos el tipo de dato de algunos de los campos que pertenecen al estudiante:
-
+```
 db.estudiantes.aggregate([{ $project: { _id:0, nombre: 1, tipoApellido : {$type : '$apellido'}, tipoEdad : { $type:'$edad'}, tipoNotas: {$type: '$notas'}, tipoPrograma: {$type:'$programa'}, tipoGrupo: {$type: '$grupos'} } }])
-
+```
 Importante notar que cuando un campo no exista en un documento retornara “missing”, diferente a que si exista el campo en el documento pero sea null, en el caso que si retornará null.
 
-Operadores condicionales:
-$cond
+# Operadores condicionales:
+# $cond
+```
 { $cond: [ <expresión-booleana>, <expresión-true>, <expresión-false> ] }
+```
 Podemos utilizar este operador para realizar una condición if, es decir, si la expresión booleana que pasamos como parámetro retorna true, entonces retorna el valor que se resuelva de la expresión-true, de lo contrario, se resuelve de la expresión-false.
 Ej: Si queremos ver que estudiantes son mayores de edad, de forma de que si el estudiante es mayor de edad muestre “Si” y de lo contrario “No”, hacemos lo siguiente:
-
+```
 db.estudiantes.aggregate([{$project: {_id:0, nombre:1, edad:1,esMayorDeEdad: {$cond:[{$gte: ['$edad',18]},'Si','No']}}}])
-
+```
 Las expresiones de true y false, pueden ser cualquier expresión que podamos usar en MongoDB, en este caso solo se pasó un string por conveniencia del ejemplo.
 
-$ifNull
+# $ifNull
+```
 { $ifNull: [ <expresión>, <expresión-reemplazo> ] }
+```
 Este operador nos permite sustituir el valor que retornaría una expresión en caso de que el resultador fuera null, indefinido o un campo inexistente por un valor que retornaría una función de reemplazo que pasamos como parámetro. Muy útil para manejar casos en los que algún campo pueda no existir en todos los documentos.
 Ej: Para que en el caso de que cuando un estudiante no tenga ningún grupo nos muestre un string que diga “No pertenece a ningún grupo” hacemos lo siguiente:
-
+```
 db.estudiantes.aggregate([{$project: { _id:0, nombre:1, grupos: { $ifNull:['$grupos',"No pertenece a ningún grupo"]}}}])
-
+```
 Nuevamente, podemos utilizar cualquier tipo de expresión válida para la expresión de reemplazo.
 
-$switch
+# $switch
+```
 $switch: { branches: [ { case: <expresión>, then: <expresión> },
 { case: <expresión>, then: < expresión> , … ], default: < expresión> }
+```
 Este operador nos permite hacer una condición switch, es decir, determinar un grupo de condiciones complementarias de modo que cuando se cumpla la expresión del case, se ejecuta la expresión del then respectivo, y si ninguna se cumple, se ejecuta la expresión del default.
 Ej: Vamos a mostrar por cada estudiante si su edad esta entre los grupos de 10 a 20, de 20 a 30 u otro grupo diferente a estos.
-
+```
 db.estudiantes.aggregate([{$project : { _id:0, nombre:1, edad:1, grupoDeEdad: { $switch: { branches: [{case:{$lt:['$edad',20]} ,then:"Grupo de menores de 20"},{ case : {$lt:['$edad',30]} ,then: "Grupo menores de 30"}], default: "Pertenece a otro grupo" } } }}])], default: "Pertenece a otro grupo" } } }}])])])
-
-Operadores sobre fechas:
-$dayOfYear, $dayOfMonth, $dayOfWeek
-$operador :
+```
+# Operadores sobre fechas:
+# $dayOfYear, $dayOfMonth, $dayOfWeek
+# $operador :
 Con estos operadores obtenemos el día del año, el día del mes y el día de la semana correspondientes a la fecha que pasamos como parámetro. Podemos pasar una expresión como parámetro siempre y cuando se resuelva en a una fecha.
 
-$year, $month, $week, $hour, $minute, $second, $millisecond
-$operador :
+# $year, $month, $week, $hour, $minute, $second, $millisecond
+# $operador :
 Recibe el mismo parámetro que los operadores anteriores, en este caso, se encargan de retornar el año, mes, semana, hora, minuto, segundo y milisegundo de dicha fecha.
 Ej: Para demostrar el funcionamiento de estos operadores, los usaremos todos en un solo comando utilizando la fecha actual (new Date()) para ver el resultado de cada uno.
-
+```
 db.estudiantes.aggregate([{$project : { _id:0, diaDelAnio: {$dayOfYear: new Date()}, diaDelMes:{ $dayOfMonth : new Date() }, diaDeLaSemana: {$dayOfWeek : new Date()}, anio:{$year : new Date()} , mes: {$month: new Date()}, semana : {$week : new Date()}, hora:{$hour : new Date()}, minuto:{$minute: new Date()}, segundo : {$second: new Date()}, milisegundo:{$millisecond: new Date()} }}])
-
+```
 El comando anterior podría ser más óptimo, pero lo dejaremos así con la finalidad de explicar el funcionamiento de los operadores.
 
-$dateToString
+# $dateToString
+```
 { $dateToString: { format:
 , date: } }
+```
 Nos permite convertir una fecha que pasamos como parámetro a un string usando un formato específico. Para ver los posibles formatos ver aquí
 Formatos para utilizar con el operador $dateToString
 Ej: Para mostrar la fecha actual en formato dia/mes/anio, lo hacemos de la siguiente forma:
-
+```
 db.estudiantes.aggregate([{$project : { _id:0, diaMesaAnio: {$dateToString:{format: "%d/%m/%Y" ,date: new Date()}}}}])
-
-Acumuladores:
+``` 
+# Acumuladores:
  Los acumuladores son operadores muy útiles cuando estamos creando etapas de agrupamiento ($group) o proyección ($project). Nos permiten obtener valores numéricos de operaciones comúnmente utilizadas sobre grupos de documentos, como sumatorias, máximos o mínimos, entre otras.
 Los operadores de acumulación que podemos utilizar en MongoDB son los siguientes:
-$sum, $avg:
+# $sum, $avg:
+```
 { $sum/$avg: <expresión> } (En $group o $project))
 O
 { $sum/$avg: [ <expresión1>, <expresión2> … ]  } (Solo en $project)
+```
 Este acumulador permite acumular los valores que retorne la expresión que pasamos como parámetro. En caso de que se use en el su segunda forma, retorna la sumatoria de todas las expresiones que se pasen como parámetro por cada uno de los documentos.
 Ej: Para obtener la sumatoria y el promedio de todas las edades, lo hacemos de la siguiente forma.
-
+```
 db.estudiantes.aggregate([{$group : {_id: 'idAux', suma: {$sum: '$edad'}, promedio: {$avg:'$edad'}}}]);
-
+```
 NOTA: En este ejemplo como en los siguientes, como estamos utilizando un id auxiliar, toda la colección se considera un documento agrupado por este id, por lo que el operador está retornando la sumatoria o average te todo el documento conformado por la colección.
 
-$max, $min
+# $max, $min
+```
 { $max/$min: <expresión> } (En $group o $project))
 O
 { $max/$min: [ <expresión1>, <expresión2> … ]  } (Solo en $project)
+```
 Permite obtener el valor máximo y el valor mínimo de la expresión que se evalúa para cada documento generado por el agrupamiento.
 Ej: Obtengamos la edad máxima y la mínimo de la colección
-
+```
 db.estudiantes.aggregate([{$group : {_id: 'idAux', maximo: {$max: '$edad'}, minimo: {$min:'$edad'}}}]);
+```
 
-$first, $last
+# $first, $last
+```
 { $first/$last: <expresión> } (Solo en $group))
+```
 Estos operadores solo los podemos utilizar en la etapa de $group y nos permiten obtener el primer y el último valor respectivamente. Lo ideal es utilizar estos operadores luego de una etapa $sort, para obtener valores que tengan sentido que estén en el primer o último lugar, de no hacerlo, sencillamente retorna el primer y el ultimo valor registrado en la colección.
 Ej: De la siguiente forma podemos obtener el estudiante más joven y al más viejo.
 ```
